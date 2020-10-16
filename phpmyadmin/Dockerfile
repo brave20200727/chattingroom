@@ -1,1 +1,1 @@
-FROM phpmyadmin:fpm-alpine
+FROM phpmyadmin:latest
