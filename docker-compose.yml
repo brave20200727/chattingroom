@@ -1,4 +1,4 @@
-version: '3'
+version: '3.8'
 
 services: 
     nginx:
@@ -10,8 +10,11 @@ services:
 
     node:
         build: ./node
-        ports: 
-            - 3000:3000
+        depends_on: 
+            - mysql
+            - redis
+        expose: 
+            - "3000"
 
     mysql:
         build: ./mysql
@@ -20,14 +23,6 @@ services:
             - 3306:3306
         environment:
             MYSQL_ROOT_PASSWORD: root
-
-    phpmyadmin:
-        build: ./phpmyadmin
-        restart: always
-        ports: 
-            - 8080:80
-        environment:
-            - PMA_ARBITRARY=1
 
     redis:
         build: ./redis
