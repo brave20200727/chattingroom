@@ -181,6 +181,7 @@ $(() => {
     // server回傳錯誤
     if (data.err === 'userNameDuplicate') {
       alert('這個名字已經被其他人登入了喔！');
+      socket.close();
     }
   });
   socket.on('receiveMessage', (data) => {

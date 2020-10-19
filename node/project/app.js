@@ -40,21 +40,21 @@ let usersNum = 0; // 目前在線的user數量
 // moment block
 const moment = require('moment');
 
-client.set('testKey', 'OK');
-// This will return a JavaScript String
-client.get('testKey', (err, res) => {
-  if (err) {
-    logger.log({
-      level: 'error',
-      message: err,
-    });
-  } else {
-    logger.log({
-      level: 'info',
-      message: res,
-    });
-  }
-});
+// client.set('testKey', 'OK');
+// // This will return a JavaScript String
+// client.get('testKey', (err, res) => {
+//   if (err) {
+//     logger.log({
+//       level: 'error',
+//       message: err,
+//     });
+//   } else {
+//     logger.log({
+//       level: 'info',
+//       message: res,
+//     });
+//   }
+// });
 
 // function block
 async function userLogin(data) {
