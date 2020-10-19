@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable no-plusplus */
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-console */
@@ -15,6 +16,7 @@ const con = mysql.createConnection({
   user: 'root',
   password: 'root',
   database: 'chattingroom',
+  charset: 'utf8mb4',
 });
 // redis connection block
 const redis = require('redis');
@@ -39,22 +41,6 @@ const users = []; // 目前在線的user
 let usersNum = 0; // 目前在線的user數量
 // moment block
 const moment = require('moment');
-
-// client.set('testKey', 'OK');
-// // This will return a JavaScript String
-// client.get('testKey', (err, res) => {
-//   if (err) {
-//     logger.log({
-//       level: 'error',
-//       message: err,
-//     });
-//   } else {
-//     logger.log({
-//       level: 'info',
-//       message: res,
-//     });
-//   }
-// });
 
 // function block
 async function userLogin(data) {
@@ -172,6 +158,8 @@ app.use('/', express.static(__dirname));
 
 /* socket */
 io.on('connection', (socket) => {
+  const socketId = socket.id;
+  console.log(socketId);
   usersNum++;
   console.log(`目前有${usersNum}個使用者在線`);
 
@@ -188,6 +176,7 @@ io.on('connection', (socket) => {
       }
     }
     if (socket.userName) {
+      client.lpush('onlineUsers', data.userName); // 加入上線使用者
       // 如果在線的使用者中沒有這個使用者的話就加入在線使用者的陣列中
       users.push({
         userName: data.userName,
@@ -206,12 +195,13 @@ io.on('connection', (socket) => {
   });
 
   // 斷開連接後做的事情
-  socket.on('disconnect', () => {
+  socket.on('disconnect', (reason) => {
+    console.log(socketId);
     usersNum--;
+    console.log(reason);
     console.log(`目前有${usersNum}個使用者在線`);
-
     socket.broadcast.emit('oneLeave', { userName: socket.userName });
-
+    client.lrem('onlineUsers', 1, socket.userName);
     users.forEach((user, index) => {
       if (user.userName === socket.userName) {
         users.splice(index, 1);

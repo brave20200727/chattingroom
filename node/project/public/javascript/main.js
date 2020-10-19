@@ -246,4 +246,10 @@ $(() => {
       }
     }
   });
+  socket.on('disconnect', (reason) => {
+    if (reason === 'ping timeout') {
+      socket.connect();
+      login();
+    }
+  });
 });

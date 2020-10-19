@@ -4,3 +4,7 @@
 /mysql
 /node/project/error.log
 /node/project/info.log
+/node_modules
+/package-lock.json
+/package.json
+.eslintrc.js
