@@ -16,14 +16,15 @@ $(() => {
   const chattingContentObj = $('#chattingContent'); // 聊天內容
   const userInputObj = $('#userInput'); // 使用者輸入框
   const onlineUsersObj = $('#onlineUsers'); // 在線使用者
-  const makeRoomButtonObj = $('#makeRoomButton'); // 創建聊天室按鈕
+  // const makeRoomButtonObj = $('#makeRoomButton'); // 創建聊天室按鈕
   const makeRoomModalObj = $('#makeRoomModal'); // 建立聊天室的modal
   const makeButtonObj = $('#makeButton'); // 創建的按鈕
   const cancelButtonObj = $('#cancelButton'); // 創建取消的按鈕
+  const chatRoomListObj = $('#chatRoomList'); // 所有聊天室列表
   const chooseUserListObj = $('#chooseUserList'); // 可加入的使用者列表
   const roomNameObj = $('#roomName'); // 房間名稱的inputbox
 
-  const socket = io.connect(url); // 建立socket連線
+  const socket = io(url); // 建立socket連線
 
   function insertcontent(
     getUserName,
@@ -72,13 +73,13 @@ $(() => {
   loginButtonObj.on('click', () => {
     // 按下登入按鍵做的事情
     userName = userNameObj.prop('value').trim();
-    login(userName, socket);
+    login();
   });
   userNameObj.keypress((event) => {
     // 使用者名稱直接按enter做的事情
     userName = userNameObj.prop('value').trim();
     if (event.keyCode === 13) {
-      login(userName, socket);
+      login();
     }
   });
 
@@ -95,10 +96,10 @@ $(() => {
       userInputObj.prop('value', '');
     }
   });
-  makeRoomButtonObj.on('click', () => {
-    // 按下後彈出modal輸入創建房間的必要資訊
-    socket.emit('getUsers');
-  });
+  // makeRoomButtonObj.on('click', () => {
+  //   // 按下後彈出modal輸入創建房間的必要資訊
+  //   socket.emit('getUsers');
+  // });
   makeButtonObj.on('click', () => {
     const checkedUsers = [];
     // eslint-disable-next-line func-names
@@ -139,7 +140,9 @@ $(() => {
       }
     }
     if (data.userName === userName) {
-      $('#labby').on('click', () => {
+      chatRoomListObj.empty();
+      const labby = $('<button type="button" class="list-group-item list-group-item-action active" data-toggle="list" id="labby">陌生大廳</button>');
+      labby.on('click', () => {
         chattingRoomHeaderObj.text('陌生大廳');
         chattingContentObj.empty();
         data2Server = {
@@ -150,6 +153,17 @@ $(() => {
         roomId = '0';
         socket.emit('getChatContents', data2Server);
       });
+      const makeRoomButtonObj = $(`<button type="button" class="list-group-item list-group-item-action" data-toggle="list" id="makeRoomButton">
+                                      <svg width="1.5em" height="1.5em" viewBox="0 0 16 16" class="bi bi-plus-circle" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                          <path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                          <path fill-rule="evenodd" d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                                      </svg>
+                                  </button>`); // 創建聊天室按鈕
+      makeRoomButtonObj.on('click', () => { // 按下後彈出modal輸入創建房間的必要資訊
+        socket.emit('getUsers');
+      });
+      chatRoomListObj.append(labby);
+      chatRoomListObj.append(makeRoomButtonObj);
       // eslint-disable-next-line no-restricted-syntax
       for (const room of data.userRooms) {
         const idStr = `room${room.roomId}`;
@@ -168,6 +182,7 @@ $(() => {
         });
         makeRoomButtonObj.before(button);
       }
+      chattingContentObj.empty();
       for (const content of data.userContents) {
         insertcontent(
           content.userName,
@@ -246,10 +261,7 @@ $(() => {
       }
     }
   });
-  socket.on('disconnect', (reason) => {
-    if (reason === 'ping timeout') {
-      socket.connect();
-      login();
-    }
+  socket.on('reconnecting', () => {
+    login();
   });
 });
