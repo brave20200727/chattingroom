@@ -1,3 +1,6 @@
 /node/project/node_modules
 .vscode
 .DS_Store
+/mysql
+/node/project/error.log
+/node/project/info.log

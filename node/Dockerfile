@@ -4,7 +4,7 @@ RUN mkdir /project
 
 WORKDIR /project
 
-ADD ./project/ .
+ADD ./project/package.json .
 
 RUN npm install
 

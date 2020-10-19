@@ -1,156 +1,188 @@
-const express = require("express");
+/* eslint-disable no-plusplus */
+/* eslint-disable no-param-reassign */
+/* eslint-disable no-console */
+const express = require('express');
+
 const app = express();
-const server = require("http").Server(app);
-const path = require("path");
-const io = require("socket.io")(server);
-const mysql = require("mysql"); // 引入Node.js的MySQL套件
-const { resolve } = require("path");
-const { json } = require("body-parser");
-const { data, hasData, get } = require("jquery");
+const server = require('http').createServer(app);
+const io = require('socket.io')(server);
+// MySQL connection setting
+const mysql = require('mysql'); // 引入Node.js的MySQL套件
+
 const con = mysql.createConnection({
   // 與MySQL的連線設定
-  host: "mysql",
-  user: "root",
-  password: "root",
-  database: "chattingroom",
+  host: 'mysql',
+  user: 'root',
+  password: 'root',
+  database: 'chattingroom',
 });
+// redis connection block
+const redis = require('redis');
+
+const client = redis.createClient({ host: 'redis' });
+// logger - winston block
+const winston = require('winston');
+
+const logger = winston.createLogger({
+  format: winston.format.json(),
+  transports: [
+    //
+    // - Write all logs with level `error` and below to `error.log`
+    // - Write all logs with level `info` and below to `combined.log`
+    //
+    new winston.transports.File({ filename: './error.log', level: 'error' }),
+    new winston.transports.File({ filename: './info.log', level: 'info' }),
+  ],
+});
+// server variables
 const users = []; // 目前在線的user
 let usersNum = 0; // 目前在線的user數量
+// moment block
+const moment = require('moment');
 
-async function userLogin(data) {
-  let checkHasThisUser = (userName) => {
-    return new Promise((resolve, reject) => {
-      con.query("SELECT * FROM `users` WHERE userName = ?",[userName],function (error, results, fields) {
-        if(error) {
-          console.log(error);
-        }
-        else {
-          resolve(results.length);
-        }
-      });
+client.set('testKey', 'OK');
+// This will return a JavaScript String
+client.get('testKey', (err, res) => {
+  if (err) {
+    logger.log({
+      level: 'error',
+      message: err,
     });
-  };
-  let insertUser = (userName) => {
-    return new Promise((resolve, reject)=>{
-      con.query('INSERT INTO users(userName) VALUES (?)', [userName], function(error,results,fields){
-        if(error) {
-          console.log(error);
-        }
-        else {
-          resolve();
-        }
-      });
-    });
-  };
-  let selectUserId = (userName) => {
-    return new Promise((resolve, reject)=>{
-      con.query('SELECT userId FROM users WHERE userName = ?', [userName], function(error,results,fields){
-        if(error) {
-          console.log(error);
-        }
-        else {
-          resolve(results[0].userId);
-        }
-      });
-    });
-  };
-  let selectContents = (roomId) => {
-    return new Promise((resolve,reject) => {
-      con.query('SELECT * FROM chatContents c JOIN users u ON c.userId = u.userId WHERE roomId = ?', [roomId], function(error,results,fields){
-        if(error) {
-          console.log(error);
-        }
-        else {
-          resolve(results);
-        }
-      });
-    });
-  };
-  let selectUserRooms = (userName) => {
-    return new Promise((resolve, reject) => {
-      con.query('SELECT r.roomId, r.roomName, u.userId, u.userName FROM whoInRoom w JOIN users u ON w.userId = u.userId JOIN rooms r ON w.roomId = r.roomId WHERE u.userName = ?',[userName],function(error,results, fields){
-        if(error) {
-          console.log(error);
-        }
-        else {
-          resolve(results);
-        }
-      });
+  } else {
+    logger.log({
+      level: 'info',
+      message: res,
     });
   }
+});
 
-  let getRows = await checkHasThisUser(data.userName);
-  if(!getRows) {
+// function block
+async function userLogin(data) {
+  const checkHasThisUser = (userName) => new Promise((resolve) => {
+    con.query('SELECT * FROM `users` WHERE userName = ?', [userName], (error, results) => {
+      if (error) {
+        console.log(error);
+      } else {
+        resolve(results.length);
+      }
+    });
+  });
+  const insertUser = (userName) => new Promise((resolve) => {
+    con.query('INSERT INTO users(userName) VALUES (?)', [userName], (error) => {
+      if (error) {
+        console.log(error);
+      } else {
+        resolve();
+      }
+    });
+  });
+  const selectUserId = (userName) => new Promise((resolve) => {
+    con.query('SELECT userId FROM users WHERE userName = ?', [userName], (error, results) => {
+      if (error) {
+        console.log(error);
+      } else {
+        resolve(results[0].userId);
+      }
+    });
+  });
+  const selectContents = (roomId) => new Promise((resolve) => {
+    con.query('SELECT * FROM chatContents c JOIN users u ON c.userId = u.userId WHERE roomId = ?', [roomId], (error, results) => {
+      if (error) {
+        console.log(error);
+      } else {
+        resolve(results);
+      }
+    });
+  });
+  const selectUserRooms = (userName) => new Promise((resolve) => {
+    con.query('SELECT r.roomId, r.roomName, u.userId, u.userName FROM whoInRoom w JOIN users u ON w.userId = u.userId JOIN rooms r ON w.roomId = r.roomId WHERE u.userName = ?', [userName], (error, results) => {
+      if (error) {
+        console.log(error);
+      } else {
+        resolve(results);
+      }
+    });
+  });
+
+  const getRows = await checkHasThisUser(data.userName);
+  if (!getRows) {
     await insertUser(data.userName);
   }
-  let [userId, contents, rooms] = await Promise.all([selectUserId(data.userName), selectContents(data.roomId), selectUserRooms(data.userName)]);
-  let returnValues = {
-    userId: userId,
-    contents: contents,
-    rooms: rooms
-  }
+  // eslint-disable-next-line max-len
+  const [userId, contents, rooms] = await Promise.all([selectUserId(data.userName), selectContents(data.roomId), selectUserRooms(data.userName)]);
+  const returnValues = {
+    userId,
+    contents,
+    rooms,
+  };
   return returnValues;
 }
 async function makeRoom(data) {
-  let insertRoom = (data) => {
-    return new Promise((resolve, reject) => {
-      con.query('INSERT INTO rooms(roomName) VALUES(?)', [data.roomName], function(error, results, fields) {
+  const insertRoom = (inputData) => new Promise((resolve) => {
+    con.query('INSERT INTO rooms(roomName) VALUES(?)', [inputData.roomName], (error) => {
+      if (error) {
+        console.log(error);
+      } else {
         resolve();
-      });
-    });
-  }
-  let selectRoomId = (data) => {
-    return new Promise((resolve, reject) => {
-      con.query('SELECT roomId FROM rooms WHERE roomName = ?', [data.roomName], function(error,results, fields) {
-        resolve(results[0].roomId);
-      })
-    });
-  }
-  let insertWhoInRoom = (data) => {
-    return new Promise((resolve, reject) => {
-      let sqlCommand = 'INSERT INTO whoInRoom(roomId, userId) VALUES ';
-      for(let one of data.checkedUsers) {
-        sqlCommand += '(' + data.roomId + ',' + one + '),'
       }
-      sqlCommand = sqlCommand.slice(0, -1);
-      con.query(sqlCommand, function(error,results, fields) {
-        if(error) {
-          console.log(error);
-        }
-        resolve();
-      })
     });
-  }
+  });
+  const selectRoomId = (inputData) => new Promise((resolve) => {
+    con.query('SELECT roomId FROM rooms WHERE roomName = ?', [inputData.roomName], (error, results) => {
+      if (error) {
+        console.log(error);
+      } else {
+        resolve(results[0].roomId);
+      }
+    });
+  });
+  const insertWhoInRoom = (inputData) => new Promise((resolve) => {
+    let sqlCommand = 'INSERT INTO whoInRoom(roomId, userId) VALUES ';
+    // eslint-disable-next-line no-restricted-syntax
+    for (const one of inputData.checkedUsers) {
+      sqlCommand += `(${inputData.roomId},${one}),`;
+    }
+    sqlCommand = sqlCommand.slice(0, -1);
+    con.query(sqlCommand, (error) => {
+      if (error) {
+        console.log(error);
+      }
+      resolve();
+    });
+  });
 
   await insertRoom(data);
-  let roomId = await selectRoomId(data);
+  const roomId = await selectRoomId(data);
   data.roomId = roomId;
   await insertWhoInRoom(data);
-  io.emit("makeRoomSuccess", data);
+  console.log(data);
+  io.emit('makeRoomSuccess', data);
 }
 
+// server block
 server.listen(3000, () => {
-  console.log("server is running");
+  console.log('server is running');
 });
 
-app.get("/", (req, res) => {
-  res.redirect("/public/chat.html");
+app.get('/', (req, res) => {
+  res.redirect('/public/chat.html');
 });
 
-app.use("/", express.static(__dirname));
+app.use('/', express.static(__dirname));
 
-/*socket*/
-io.on("connection", (socket) => {
+/* socket */
+io.on('connection', (socket) => {
   usersNum++;
   console.log(`目前有${usersNum}個使用者在線`);
 
-  socket.on("login", (data) => {
+  socket.on('login', (data) => {
     socket.userName = data.userName;
 
     // 如果在線的使用者中有這個使用者名稱的話就會報錯
-    for (let user of users) {
+    // eslint-disable-next-line no-restricted-syntax
+    for (const user of users) {
       if (user.userName === data.userName) {
-        socket.emit("getError", { err: "userNameDuplicate" });
+        socket.emit('getError', { err: 'userNameDuplicate' });
         socket.userName = null;
         break;
       }
@@ -163,82 +195,71 @@ io.on("connection", (socket) => {
       });
       data.userGroup = users;
 
-      userLogin(data).then(function(returnValues){
+      userLogin(data).then((returnValues) => {
         socket.join(data.roomId);
         data.userId = returnValues.userId;
         data.userContents = returnValues.contents;
         data.userRooms = returnValues.rooms;
-        io.emit("loginSuccess", data);
+        io.emit('loginSuccess', data);
       });
     }
   });
 
-  //斷開連接後做的事情
-  socket.on("disconnect", () => {
+  // 斷開連接後做的事情
+  socket.on('disconnect', () => {
     usersNum--;
     console.log(`目前有${usersNum}個使用者在線`);
 
-    socket.broadcast.emit("oneLeave", { userName: socket.userName });
+    socket.broadcast.emit('oneLeave', { userName: socket.userName });
 
-    users.forEach(function (user, index) {
+    users.forEach((user, index) => {
       if (user.userName === socket.userName) {
         users.splice(index, 1);
       }
     });
   });
 
-  socket.on("sendMessage", (data) => {
-    let nowTimestamp = new Date(data.nowTimestamp);
-    let formatDateTime = function (date) {
-      // 將日期格式轉換為想要的形狀
-      let year = date.getFullYear();
-      let month = date.getMonth() + 1;
-      month = month < 10 ? "0" + month : month;
-      let day = date.getDate();
-      day = day < 10 ? "0" + day : day;
-      let hour = date.getHours();
-      hour = hour < 10 ? "0" + hour : hour;
-      let minute = date.getMinutes();
-      minute = minute < 10 ? "0" + minute : minute;
-      let second = date.getSeconds();
-      second = second < 10 ? "0" + second : second;
-      return ( year + "-" +month +"-" +day +" " +hour +":" +minute +":" +second);
-    };
+  socket.on('sendMessage', (data) => {
+    const nowTimestamp = new Date(data.nowTimestamp);
+    const formatDateTime = moment(nowTimestamp).format('YYYY-MM-DD hh:mm:ss');
     con.query(
-      "INSERT INTO `chatContents`(userId, content, roomId, sendTime) VALUES((SELECT userId FROM `users` WHERE userName = ?), ?, ?, ?)",
-      [data.userName, data.message, data.roomId, formatDateTime(nowTimestamp)],
-      function (error, results, fields) {
-        if(error) {
+      'INSERT INTO `chatContents`(userId, content, roomId, sendTime) VALUES((SELECT userId FROM `users` WHERE userName = ?), ?, ?, ?)',
+      [data.userName, data.message, data.roomId, formatDateTime],
+      (error) => {
+        if (error) {
           console.log(error);
         }
-      }
+      },
     );
-    for (let _user of users) {
-      if (_user.userName === data.userName) {
-        _user.message.push(data.message);
+    // eslint-disable-next-line no-restricted-syntax
+    for (const user of users) {
+      if (user.userName === data.userName) {
+        user.message.push(data.message);
         break;
       }
     }
-    io.in(data.roomId).emit("receiveMessage", data);
+    io.in(data.roomId).emit('receiveMessage', data);
   });
   socket.on('getUsers', () => {
-    con.query('SELECT * FROM users', function(error, results, fields){
-      socket.emit('getUsersSuccess', results);  
+    con.query('SELECT * FROM users', (error, results) => {
+      if (error) {
+        console.log(error);
+      } else {
+        socket.emit('getUsersSuccess', results);
+      }
     });
-    
   });
-  socket.on("makeRoom", (data) => {
+  socket.on('makeRoom', (data) => {
     makeRoom(data);
   });
   socket.on('getChatContents', (data) => {
     socket.leave(data.oldRoomId);
     socket.join(data.roomId);
-    con.query('SELECT * FROM chatContents c JOIN users u ON c.userId = u.userId WHERE roomId = ?', [data.roomId], function(error,results, fields){
-      if(error) {
+    con.query('SELECT * FROM chatContents c JOIN users u ON c.userId = u.userId WHERE roomId = ?', [data.roomId], (error, results) => {
+      if (error) {
         console.log(error);
-      }
-      else {
-        socket.emit('getChatContentsSuccess', {userName: data.userName, results: results});
+      } else {
+        socket.emit('getChatContentsSuccess', { userName: data.userName, results });
       }
     });
   });
