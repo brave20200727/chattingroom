@@ -210,8 +210,8 @@ io.on('connection', (socket) => {
   });
 
   socket.on('sendMessage', (data) => {
-    const nowTimestamp = new Date(data.nowTimestamp);
-    const formatDateTime = moment(nowTimestamp).format('YYYY-MM-DD hh:mm:ss');
+    // const nowTimestamp = new Date(data.nowTimestamp);
+    const formatDateTime = moment(data.nowTimestamp).format('YYYY-MM-DD HH:mm:ss');
     con.query(
       'INSERT INTO `chatContents`(userId, content, roomId, sendTime) VALUES((SELECT userId FROM `users` WHERE userName = ?), ?, ?, ?)',
       [data.userName, data.message, data.roomId, formatDateTime],

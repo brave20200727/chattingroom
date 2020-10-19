@@ -32,8 +32,8 @@ $(() => {
     message,
   ) {
     // 加入新的對話語句
-    const nowTime = new Date(getTime);
-    const formatDateTime = moment(nowTime).utcOffset(8).format('YYYY-MM-DD hh:mm');
+    // const nowTime = new Date(getTime);
+    const formatDateTime = moment(getTime).format('YYYY-MM-DD HH:mm');
     if (getUserName === userName) {
       chattingContentObj.append(
         `<p class="oneTalkMe"><strong>${getUserName}:</strong><br><span class="timestamp">${formatDateTime}</span> ${message}</p>`,
