@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>聊天室</title>
+    <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.css">
+    <script src="/node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="/node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script src="/public/javascript/main.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        #chattingRoomBody {
+            overflow-y: scroll;
+        }
+        #inputBox {
+            position: fixed;
+            bottom: 0;
+            width: 740px;
+        }
+        #chooseUserList{
+            overflow-y: scroll;
+        }
+        .timestamp {
+            color: lightgray;
+            font-size: 10px;
+        }
+        .oneTalkOther {
+            font-size: 20px;
+        }
+        .oneTalkMe {
+            font-size: 20px;
+            text-align:right;
+        }
+        button:focus { /* 取消按鈕按下時的邊框 */
+            outline:0;
+        }
+    </style>
+</head>
+<body>
+    <div id="loginBox" class="container">
+        <div class="row">
+            <div class="col-md-4"></div>
+            <div class="col-md-4">
+                <div style="text-align:center;">
+                    <h1 style="text-align:cnter;">登入</h1>    
+                </div>
+                <div class="form-group">
+                    <label for="userName">登入名</label>
+                    <input type="text" id="userName" class="form-control" placeholder="請輸入名字">
+                </div>
+                <div style="text-align:center;">
+                    <button type="button" id="loginButton" class="btn btn-primary btn-lg">登入</button>
+                </div>                
+            </div>
+            <div class="col-md-4"></div>
+        </div>
+
+    </div>
+    <div id="chattingBox" class="container" style="display: none;">
+        <div class="row no-gutters">
+            <div class="col-md-2" id="chattingRoomList">
+                <div class="card">
+                    <div class="card-header">聊天</div>
+                    <div class="list-group list-group-flush">
+                        <button type="button" class="list-group-item list-group-item-action active" data-toggle="list" id="labby">陌生大廳</button>
+                        <button type="button" class="list-group-item list-group-item-action" data-toggle="list" id="makeRoomButton">
+                            <svg width="1.5em" height="1.5em" viewBox="0 0 16 16" class="bi bi-plus-circle" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                <path fill-rule="evenodd" d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8" id="chattingArea">
+                <div class="card" style="height: 95vh;">
+                    <h5 class="card-header" id="chattingRoomHeader">陌生大廳</h5>
+                    <div class="card-body" id="chattingRoomBody">
+                        <div id="chattingContent">  <!-- 聊天內容的區塊 -->
+                        </div>
+                    </div>
+                </div>
+                <div id="inputBox" class="input-group">
+                    <input type="text" id="userInput" class="form-control" placeholder="輸入要傳送的內容">
+                    <div class="input-group-append">
+                        <button type="button" id="sendButton" class="btn btn-primary">送出</button>
+                    </div>
+                </div>                 
+            </div>
+            <div class="col-md-2" id="onlineUserList">
+                <div class="card">
+                    <div class="card-header">在線使用者</div>
+                    <ul class="list-group list-group-flush" id="onlineUsers"></ul>
+                </div>
+            </div>    
+        </div>
+            
+    </div>
+
+    <!-- 懸浮視窗的部分 -->
+    <div class="modal fade" id="makeRoomModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="makeRoomModalLabel">創建聊天室</h5>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="roomName" class="label-control">房間名稱</label>
+                        <input type="text" id="roomName" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="">可選擇的成員</label>
+                        <div id="chooseUserList" style="height: 100px;"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="makeButton">創建</button>
+                    <button type="button" class="btn btn-primary" id="cancelButton">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>    
+</body>
+</html>

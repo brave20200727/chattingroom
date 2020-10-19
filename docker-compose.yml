@@ -17,7 +17,7 @@ services:
             - "3000"
 
     mysql:
-        build: ./mysql
+        image: mysql:5.7
         restart: always
         ports: 
             - 3306:3306
@@ -25,6 +25,16 @@ services:
             MYSQL_ROOT_PASSWORD: root
 
     redis:
-        build: ./redis
+        image: redis:latest
         ports: 
             - 6379:6379
+
+    phpmyadmin:
+        image: phpmyadmin:latest
+        depends_on: 
+            - mysql
+        restart: always
+        ports:
+        - 8080:80
+        environment:
+        - PMA_ARBITRARY=1
