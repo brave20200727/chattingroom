@@ -40,7 +40,6 @@ const logger = winston.createLogger({
 let usersNum = 0; // 目前在線的user數量
 // moment block
 const moment = require('moment');
-const { cli } = require('winston/lib/winston/config');
 
 // function block
 async function userLogin(data) {
@@ -147,6 +146,7 @@ async function makeRoom(data) {
   await insertRoom(data);
   const roomId = await selectRoomId(data);
   data.roomId = roomId;
+  client.SET(data.roomName, roomId);
   await insertWhoInRoom(data);
   console.log(data);
   io.emit('makeRoomSuccess', data);
@@ -187,6 +187,7 @@ io.on('connection', (socket) => {
           client.LRANGE('onlineUsers', 0, -1, (err, res) => {
             data.userGroup = res;
             userLogin(data).then((returnValues) => {
+              client.SET(data.userName, returnValues.userId);
               socket.join(data.roomId);
               data.userId = returnValues.userId;
               data.userContents = returnValues.contents;
