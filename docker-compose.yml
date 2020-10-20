@@ -13,8 +13,8 @@ services:
         depends_on: 
             - mysql
             - redis
-        volumes: 
-            - ./node/project:/project
+        # volumes: 
+        #     - ./node/project:/project
         expose: 
             - "3000"
 
