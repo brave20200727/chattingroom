@@ -162,7 +162,7 @@ io.on('connection', (socket) => {
   console.log(socketId);
   usersNum++;
   console.log(`目前有${usersNum}個使用者在線`);
-
+  socket.userName = null;
   socket.on('login', (data) => {
     socket.userName = data.userName;
 
@@ -176,7 +176,7 @@ io.on('connection', (socket) => {
       }
     }
     if (socket.userName) {
-      client.lpush('onlineUsers', data.userName); // 加入上線使用者
+      client.LPUSH('onlineUsers', data.userName); // 加入上線使用者
       // 如果在線的使用者中沒有這個使用者的話就加入在線使用者的陣列中
       users.push({
         userName: data.userName,
@@ -200,18 +200,21 @@ io.on('connection', (socket) => {
     usersNum--;
     console.log(reason);
     console.log(`目前有${usersNum}個使用者在線`);
-    socket.broadcast.emit('oneLeave', { userName: socket.userName });
-    client.lrem('onlineUsers', 1, socket.userName);
-    users.forEach((user, index) => {
-      if (user.userName === socket.userName) {
-        users.splice(index, 1);
-      }
-    });
+    if(socket.userName !== null) {
+      socket.broadcast.emit('oneLeave', { userName: socket.userName });
+      client.LREM('onlineUsers', 1, socket.userName);
+      users.forEach((user, index) => {
+        if (user.userName === socket.userName) {
+          users.splice(index, 1);
+        }
+      });
+    }
   });
 
   socket.on('sendMessage', (data) => {
     // const nowTimestamp = new Date(data.nowTimestamp);
     const formatDateTime = moment(data.nowTimestamp).format('YYYY-MM-DD HH:mm:ss');
+    client.LPUSH(data.roomId, data.message);
     con.query(
       'INSERT INTO `chatContents`(userId, content, roomId, sendTime) VALUES((SELECT userId FROM `users` WHERE userName = ?), ?, ?, ?)',
       [data.userName, data.message, data.roomId, formatDateTime],
