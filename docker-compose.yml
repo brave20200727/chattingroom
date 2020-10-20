@@ -13,8 +13,8 @@ services:
         depends_on: 
             - mysql
             - redis
-        # volumes: 
-        #     - ./node/project:/project
+        volumes: 
+            - ./node/project:/project
         expose: 
             - "3000"
 
@@ -51,6 +51,6 @@ services:
         image: rediscommander/redis-commander:latest
         restart: always
         environment:
-        - REDIS_HOSTS=local:redis:6379
+        - REDIS_HOSTS=redis
         ports:
         - "8081:8081"

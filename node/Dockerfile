@@ -4,8 +4,8 @@ RUN mkdir /project
 
 WORKDIR /project
 
-COPY ./project .
+# COPY ./project .
 
-RUN npm install
+# RUN npm install
 
 CMD [ "npm", "start" ]

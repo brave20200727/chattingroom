@@ -138,9 +138,9 @@ $(() => {
     );
     // eslint-disable-next-line no-restricted-syntax
     for (const user of data.userGroup) {
-      if (user.userName !== userName) {
+      if (user !== userName) {
         onlineUsersObj.append(
-          `<li class="list-group-item" name="${user.userName}">${user.userName}</li>`,
+          `<li class="list-group-item" name="${user}">${user}</li>`,
         );
       }
     }
@@ -183,10 +183,11 @@ $(() => {
       }
       chattingContentObj.empty();
       for (const content of data.userContents) {
+        const contentObj = JSON.parse(content);
         insertcontent(
-          content.userName,
-          content.sendTime,
-          content.content,
+          contentObj.userName,
+          contentObj.sendTime,
+          contentObj.content,
         );
       }
     }
@@ -251,11 +252,12 @@ $(() => {
   });
   socket.on('getChatContentsSuccess', (data) => {
     if (data.userName === userName) {
-      for (const one of data.results) {
+      for (const one of data.res) {
+        const one2Json = JSON.parse(one);
         insertcontent(
-          one.userName,
-          one.sendTime,
-          one.content,
+          one2Json.userName,
+          one2Json.sendTime,
+          one2Json.content,
         );
       }
     }

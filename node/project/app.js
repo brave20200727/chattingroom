@@ -37,10 +37,10 @@ const logger = winston.createLogger({
   ],
 });
 // server variables
-const users = []; // 目前在線的user
 let usersNum = 0; // 目前在線的user數量
 // moment block
 const moment = require('moment');
+const { cli } = require('winston/lib/winston/config');
 
 // function block
 async function userLogin(data) {
@@ -72,11 +72,18 @@ async function userLogin(data) {
     });
   });
   const selectContents = (roomId) => new Promise((resolve) => {
-    con.query('SELECT * FROM chatContents c JOIN users u ON c.userId = u.userId WHERE roomId = ?', [roomId], (error, results) => {
-      if (error) {
-        console.log(error);
+    // con.query('SELECT * FROM chatContents c JOIN users u ON c.userId = u.userId WHERE roomId = ?', [roomId], (error, results) => {
+    //   if (error) {
+    //     console.log(error);
+    //   } else {
+    //     resolve(results);
+    //   }
+    // });
+    client.LRANGE(roomId, 0, -1, (err, res) => {
+      if (err) {
+        console.log(err);
       } else {
-        resolve(results);
+        resolve(res);
       }
     });
   });
@@ -165,33 +172,31 @@ io.on('connection', (socket) => {
   socket.userName = null;
   socket.on('login', (data) => {
     socket.userName = data.userName;
-
     // 如果在線的使用者中有這個使用者名稱的話就會報錯
     // eslint-disable-next-line no-restricted-syntax
-    for (const user of users) {
-      if (user.userName === data.userName) {
-        socket.emit('getError', { err: 'userNameDuplicate' });
-        socket.userName = null;
-        break;
+    client.LRANGE('onlineUsers', 0, -1, (err, res) => {
+      for (const user of res) {
+        if (user === data.userName) {
+          socket.emit('getError', { err: 'userNameDuplicate' });
+          socket.userName = null;
+          break;
+        }
       }
-    }
-    if (socket.userName) {
-      client.LPUSH('onlineUsers', data.userName); // 加入上線使用者
-      // 如果在線的使用者中沒有這個使用者的話就加入在線使用者的陣列中
-      users.push({
-        userName: data.userName,
-        message: [],
-      });
-      data.userGroup = users;
-
-      userLogin(data).then((returnValues) => {
-        socket.join(data.roomId);
-        data.userId = returnValues.userId;
-        data.userContents = returnValues.contents;
-        data.userRooms = returnValues.rooms;
-        io.emit('loginSuccess', data);
-      });
-    }
+      if (socket.userName) {
+        client.LPUSH('onlineUsers', data.userName, (err, results) => {
+          client.LRANGE('onlineUsers', 0, -1, (err, res) => {
+            data.userGroup = res;
+            userLogin(data).then((returnValues) => {
+              socket.join(data.roomId);
+              data.userId = returnValues.userId;
+              data.userContents = returnValues.contents;
+              data.userRooms = returnValues.rooms;
+              io.emit('loginSuccess', data);
+            });
+          });
+        }); // 加入上線使用者
+      }      
+    });
   });
 
   // 斷開連接後做的事情
@@ -202,35 +207,29 @@ io.on('connection', (socket) => {
     console.log(`目前有${usersNum}個使用者在線`);
     if(socket.userName !== null) {
       socket.broadcast.emit('oneLeave', { userName: socket.userName });
-      client.LREM('onlineUsers', 1, socket.userName);
-      users.forEach((user, index) => {
-        if (user.userName === socket.userName) {
-          users.splice(index, 1);
-        }
-      });
+      client.LREM('onlineUsers', 0, socket.userName);
     }
   });
 
   socket.on('sendMessage', (data) => {
     // const nowTimestamp = new Date(data.nowTimestamp);
     const formatDateTime = moment(data.nowTimestamp).format('YYYY-MM-DD HH:mm:ss');
-    client.LPUSH(data.roomId, data.message);
     con.query(
       'INSERT INTO `chatContents`(userId, content, roomId, sendTime) VALUES((SELECT userId FROM `users` WHERE userName = ?), ?, ?, ?)',
       [data.userName, data.message, data.roomId, formatDateTime],
       (error) => {
         if (error) {
           console.log(error);
+        } else {
+          const oneChatContent = {
+            userName: data.userName,
+            content: data.message,
+            sendTime: data.nowTimestamp
+          };
+          client.RPUSH(data.roomId, JSON.stringify(oneChatContent));          
         }
       },
     );
-    // eslint-disable-next-line no-restricted-syntax
-    for (const user of users) {
-      if (user.userName === data.userName) {
-        user.message.push(data.message);
-        break;
-      }
-    }
     io.in(data.roomId).emit('receiveMessage', data);
   });
   socket.on('getUsers', () => {
@@ -248,11 +247,18 @@ io.on('connection', (socket) => {
   socket.on('getChatContents', (data) => {
     socket.leave(data.oldRoomId);
     socket.join(data.roomId);
-    con.query('SELECT * FROM chatContents c JOIN users u ON c.userId = u.userId WHERE roomId = ?', [data.roomId], (error, results) => {
-      if (error) {
-        console.log(error);
+    // con.query('SELECT * FROM chatContents c JOIN users u ON c.userId = u.userId WHERE roomId = ?', [data.roomId], (error, results) => {
+    //   if (error) {
+    //     console.log(error);
+    //   } else {
+    //     socket.emit('getChatContentsSuccess', { userName: data.userName, results });
+    //   }
+    // });
+    client.LRANGE(data.roomId, 0, -1, (err, res) => {
+      if (err) {
+        console.log(err);
       } else {
-        socket.emit('getChatContentsSuccess', { userName: data.userName, results });
+        socket.emit('getChatContentsSuccess', { userName: data.userName, res });
       }
     });
   });
