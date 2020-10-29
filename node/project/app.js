@@ -36,10 +36,13 @@ const logger = winston.createLogger({
     new winston.transports.File({ filename: './info.log', level: 'info' }),
   ],
 });
-// server variables
-let usersNum = 0; // 目前在線的user數量
 // moment block
 const moment = require('moment');
+// node cron
+const cron = require('node-cron');
+cron.schedule('*/10 * * * * *', () => {
+  io.in('0').emit('getInfo');
+});
 
 // function block
 async function userLogin(data) {
@@ -165,10 +168,6 @@ app.use('/', express.static(__dirname));
 
 /* socket */
 io.on('connection', (socket) => {
-  const socketId = socket.id;
-  console.log(socketId);
-  usersNum++;
-  console.log(`目前有${usersNum}個使用者在線`);
   socket.userName = null;
   socket.on('login', (data) => {
     socket.userName = data.userName;
@@ -202,10 +201,7 @@ io.on('connection', (socket) => {
 
   // 斷開連接後做的事情
   socket.on('disconnect', (reason) => {
-    console.log(socketId);
-    usersNum--;
-    console.log(reason);
-    console.log(`目前有${usersNum}個使用者在線`);
+    console.log(socket.userName);
     if(socket.userName !== null) {
       socket.broadcast.emit('oneLeave', { userName: socket.userName });
       client.LREM('onlineUsers', 0, socket.userName);
@@ -227,7 +223,26 @@ io.on('connection', (socket) => {
             content: data.message,
             sendTime: data.nowTimestamp
           };
-          client.RPUSH(data.roomId, JSON.stringify(oneChatContent));          
+          client.LLEN(data.roomId, (err, res) => {
+            if(err) {
+              console.log(err);
+            }
+            else {
+              if(res < 100) {
+                client.RPUSH(data.roomId, JSON.stringify(oneChatContent));
+              }
+              else {
+                client.LPOP(data.roomId, (err, res) => {
+                  if(err) {
+                    console.log(err);
+                  }
+                  else {
+                    client.RPUSH(data.roomId, JSON.stringify(oneChatContent));
+                  }
+                });
+              }
+            }
+          });        
         }
       },
     );
