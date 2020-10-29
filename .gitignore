@@ -1,7 +1,7 @@
 node/project/node_modules
 .vscode
 .DS_Store
-mysql/data/*
+mysql/data
 node/project/error.log
 node/project/info.log
 node_modules
