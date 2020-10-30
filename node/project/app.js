@@ -74,13 +74,6 @@ async function userLogin(data) {
     });
   });
   const selectContents = (roomId) => new Promise((resolve) => {
-    // con.query('SELECT * FROM chatContents c JOIN users u ON c.userId = u.userId WHERE roomId = ?', [roomId], (error, results) => {
-    //   if (error) {
-    //     console.log(error);
-    //   } else {
-    //     resolve(results);
-    //   }
-    // });
     client.LRANGE(roomId, 0, -1, (err, res) => {
       if (err) {
         console.log(err);
@@ -149,7 +142,7 @@ async function makeRoom(data) {
   await insertRoom(data);
   const roomId = await selectRoomId(data);
   data.roomId = roomId;
-  client.SET(data.roomName, roomId);
+  // client.SET(data.roomName, roomId);
   await insertWhoInRoom(data);
   console.log(data);
   io.emit('makeRoomSuccess', data);
@@ -168,6 +161,7 @@ app.use('/', express.static(__dirname));
 
 /* socket */
 io.on('connection', (socket) => {
+  console.log(socket.id + ' is connecting!');
   socket.userName = null;
   socket.on('login', (data) => {
     socket.userName = data.userName;
@@ -182,11 +176,11 @@ io.on('connection', (socket) => {
         }
       }
       if (socket.userName) {
-        client.LPUSH('onlineUsers', data.userName, (err, results) => {
+        client.LPUSH('onlineUsers', data.userName, (err, results) => { // 加入上線使用者
           client.LRANGE('onlineUsers', 0, -1, (err, res) => {
             data.userGroup = res;
             userLogin(data).then((returnValues) => {
-              client.SET(data.userName, returnValues.userId);
+              // client.SET(data.userName, returnValues.userId);
               socket.join(data.roomId);
               data.userId = returnValues.userId;
               data.userContents = returnValues.contents;
@@ -194,14 +188,15 @@ io.on('connection', (socket) => {
               io.emit('loginSuccess', data);
             });
           });
-        }); // 加入上線使用者
+        });
+        client.SET(data.userName, data.loginTime);
       }      
     });
   });
 
   // 斷開連接後做的事情
   socket.on('disconnect', (reason) => {
-    console.log(socket.userName);
+    console.log(reason);
     if(socket.userName !== null) {
       socket.broadcast.emit('oneLeave', { userName: socket.userName });
       client.LREM('onlineUsers', 0, socket.userName);
@@ -246,7 +241,43 @@ io.on('connection', (socket) => {
         }
       },
     );
-    io.in(data.roomId).emit('receiveMessage', data);
+    switch(data.message) { // 如果是系統公告的話就要加上系統所回覆的部分
+      case '!users': {
+        data.official = true;
+        client.LLEN('onlineUsers', (err, res) => {
+          if(err) {
+            console.log(err);
+          }
+          else {
+            data.systemReturn = `總共 ${res} 位使用者在線`;
+          }
+          io.in(data.roomId).emit('receiveMessage', data);
+        });
+        break;
+      }
+      case '!server time': {
+        data.official = true;
+        const nowTime = new Date();
+        const formatDateTime = moment(nowTime).format('YYYY-MM-DD HH:mm:ss');
+        data.systemReturn = `現在時間為${formatDateTime}`;
+        io.in(data.roomId).emit('receiveMessage', data);
+        break;
+      }
+      case '!online time': {
+        data.official = true;
+        client.GET(data.userName, (err, res) => {
+          const formatDateTime = moment(res).format('YYYY-MM-DD HH:mm:ss');
+          data.systemReturn = `您的上線時間為${formatDateTime}`;
+          io.in(data.roomId).emit('receiveMessage', data);
+        });
+        break;
+      }
+      default: {
+        data.official = false;
+        io.in(data.roomId).emit('receiveMessage', data);
+        break;
+      }
+    }
   });
   socket.on('getUsers', () => {
     con.query('SELECT * FROM users', (error, results) => {
@@ -263,13 +294,6 @@ io.on('connection', (socket) => {
   socket.on('getChatContents', (data) => {
     socket.leave(data.oldRoomId);
     socket.join(data.roomId);
-    // con.query('SELECT * FROM chatContents c JOIN users u ON c.userId = u.userId WHERE roomId = ?', [data.roomId], (error, results) => {
-    //   if (error) {
-    //     console.log(error);
-    //   } else {
-    //     socket.emit('getChatContentsSuccess', { userName: data.userName, results });
-    //   }
-    // });
     client.LRANGE(data.roomId, 0, -1, (err, res) => {
       if (err) {
         console.log(err);

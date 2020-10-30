@@ -55,7 +55,7 @@ $(() => {
     if (userName === '') {
       alert('請輸入名字');
     } else {
-      socket.emit('login', { userName, roomId });
+      socket.emit('login', { userName, roomId, loginTime: new Date() });
     }
   }
   function sendMessage() {
@@ -72,6 +72,15 @@ $(() => {
     } else {
       alert('沒有輸入聊天內容喔！');
     }
+  }
+  function systemInformation(message) {
+    chattingContentObj.append(
+      `<p class="systemInfo"><strong>系統公告</strong><br>${message}</p>`,
+    );
+    $('#chattingRoomBody').scrollTop($('#chattingContent').height()); // 使頁面處於置底狀態
+  }
+  function reconnect() {
+
   }
 
   // 登入區塊事件
@@ -101,10 +110,6 @@ $(() => {
       userInputObj.prop('value', '');
     }
   });
-  // makeRoomButtonObj.on('click', () => {
-  //   // 按下後彈出modal輸入創建房間的必要資訊
-  //   socket.emit('getUsers');
-  // });
   makeButtonObj.on('click', () => {
     const checkedUsers = [];
     // eslint-disable-next-line func-names
@@ -201,11 +206,27 @@ $(() => {
   });
   socket.on('receiveMessage', (data) => {
     // 接收訊息
-    insertcontent(
-      data.userName,
-      data.nowTimestamp,
-      data.message,
-    );
+    console.log(data);
+    if(data.official) {
+      insertcontent(
+        data.userName,
+        data.nowTimestamp,
+        data.message,
+      );
+      systemInformation(data.systemReturn);
+      // insertcontent(
+      //   '系統公告',
+      //   data.nowTimestamp,
+      //   data.systemReturn,
+      // );      
+    }
+    else {
+      insertcontent(
+        data.userName,
+        data.nowTimestamp,
+        data.message,
+      );      
+    }
   });
   socket.on('oneLeave', (data) => {
     onlineUsersObj.find($(`li[name='${data.userName}']`)).remove();
