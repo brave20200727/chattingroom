@@ -41,7 +41,15 @@ const moment = require('moment');
 // node cron
 const cron = require('node-cron');
 cron.schedule('*/10 * * * * *', () => {
-  io.in('0').emit('getInfo');
+  con.query('SELECT infoContent FROM informations WHERE informationId = ?', [parseInt(Math.random()*10+1)], function(error, results) {
+    if(error) {
+
+    }
+    else {
+      io.in('0').emit('getInfo', results[0].infoContent);
+    }
+  });
+  
 });
 
 // function block

@@ -289,7 +289,8 @@ $(() => {
   socket.on('reconnecting', () => {
     login();
   });
-  socket.on('getInfo', () => {
+  socket.on('getInfo', (data) => {
+    $('#infoBody').text(data);
     $('.toast').toast('show');
   });
 });
