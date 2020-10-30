@@ -53,7 +53,7 @@ $(() => {
   function login() {
     // 登入判斷
     if (userName === '') {
-      alert('請輸入名字');
+      $('#errorMessage').text('請輸入名字！');
     } else {
       socket.emit('login', { userName, roomId, loginTime: new Date() });
     }
@@ -70,7 +70,10 @@ $(() => {
         nowTimestamp,
       });
     } else {
-      alert('沒有輸入聊天內容喔！');
+      $("#myAlert").show('slow');
+      setTimeout(() => {
+        $("#myAlert").hide('slow')
+      }, 2000);
     }
   }
   function systemInformation(message) {
@@ -200,7 +203,7 @@ $(() => {
   socket.on('getError', (data) => {
     // server回傳錯誤
     if (data.err === 'userNameDuplicate') {
-      alert('這個名字已經被其他人登入了喔！');
+      $('#errorMessage').text('這個名字已經被其他人登入了喔！');
       socket.close();
     }
   });

@@ -36,6 +36,11 @@
             color: gray;
             text-align:center;
         }
+        .errorMessage {
+            color: red;
+            text-align:center;
+            font-size: 20px;
+        }
         button:focus { /* 取消按鈕按下時的邊框 */
             outline:0;
         }
@@ -53,6 +58,7 @@
                     <label for="userName">登入名</label>
                     <input type="text" id="userName" class="form-control" placeholder="請輸入名字">
                 </div>
+                <div id="errorMessage" class="errorMessage"></div>
                 <div style="text-align:center;">
                     <button type="button" id="loginButton" class="btn btn-primary btn-lg">登入</button>
                 </div>                
@@ -60,6 +66,9 @@
             <div class="col-md-4"></div>
         </div>
 
+    </div>
+    <div class="alert alert-danger" style="display: none; position: fixed; top: 0; right: 0;" id="myAlert">
+        <strong>沒有輸入聊天內容喔！</strong>
     </div>
     <div id="chattingBox" class="container" style="display: none;">
         <div class="row no-gutters">
