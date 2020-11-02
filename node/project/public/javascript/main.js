@@ -39,29 +39,20 @@ $(() => {
     // 加入新的對話語句
     // const nowTime = new Date(getTime);
     const formatDateTime = moment(getTime).format('YYYY-MM-DD HH:mm');
-    const regularExpression = new RegExp('^http://.*|^https://.*');
+    // const regularExpression = /(http|ftp|https):\/\/[\w\-_]+(\.[\w\-_]+)+([\w\-\.,@?^=%&;:/~\+#]*[\w\-\@?^=%&;/~\+#])?/g;
+    const regularExpression = /(((ht|f)tp(s?))\:\/\/)?(www.|[a-zA-Z].)[a-zA-Z0-9\-\.]+\.(com|edu|gov|mil|net|org|biz|info|name|museum|us|ca|uk)(\:[0-9]+)*(\/($|[a-zA-Z0-9\.\,\;\?\'\\\+&amp;%\$#\=~_\-]+))*/g;
+    message = message.replace(regularExpression, function() {
+      link = regularExpression.exec(message)[0];
+      return `<a href="${link}" target="_blank">${link}</a>`
+    });
     if (getUserName === userName) { // 判斷是不是自己發話的
-      if(regularExpression.test(message)) { // 判斷是不是超連結
-        chattingContentObj.append(
-          `<p class="oneTalkMe"><strong>${getUserName}:</strong><br><span class="timestamp">${formatDateTime}</span> <a href="${message}" target="_blank">${message}</a></p>`,
-        );  
-      }
-      else {
-        chattingContentObj.append(
-          `<p class="oneTalkMe"><strong>${getUserName}:</strong><br><span class="timestamp">${formatDateTime}</span> ${message}</p>`,
-        );        
-      }
+      chattingContentObj.append(
+        `<p class="oneTalkMe"><strong>${getUserName}:</strong><br><span class="timestamp">${formatDateTime}</span> ${message}</p>`,
+      );
     } else {
-      if(regularExpression.test(message)) {
-        chattingContentObj.append(
-          `<p class="oneTalkOther"><strong>${getUserName}:</strong><br><a href="${message}" target="_blank">${message}</a><span class="timestamp"> ${formatDateTime}</span></p>`,
-        );            
-      }
-      else {
-        chattingContentObj.append(
-          `<p class="oneTalkOther"><strong>${getUserName}:</strong><br>${message}<span class="timestamp"> ${formatDateTime}</span></p>`,
-        );        
-      }
+      chattingContentObj.append(
+        `<p class="oneTalkOther"><strong>${getUserName}:</strong><br>${message}<span class="timestamp"> ${formatDateTime}</span></p>`,
+      );
     }
     $('#chattingRoomBody').scrollTop($('#chattingContent').height()); // 使頁面處於置底狀態
   }
