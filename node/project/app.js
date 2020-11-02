@@ -152,7 +152,6 @@ async function makeRoom(data) {
   data.roomId = roomId;
   // client.SET(data.roomName, roomId);
   await insertWhoInRoom(data);
-  console.log(data);
   io.emit('makeRoomSuccess', data);
 }
 

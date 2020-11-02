@@ -40,7 +40,6 @@ $(() => {
     // const nowTime = new Date(getTime);
     const formatDateTime = moment(getTime).format('YYYY-MM-DD HH:mm');
     const regularExpression = new RegExp('^http://.*|^https://.*');
-    console.log(regularExpression.test(message));
     if (getUserName === userName) { // 判斷是不是自己發話的
       if(regularExpression.test(message)) { // 判斷是不是超連結
         chattingContentObj.append(
@@ -98,9 +97,6 @@ $(() => {
     );
     $('#chattingRoomBody').scrollTop($('#chattingContent').height()); // 使頁面處於置底狀態
   }
-  function reconnect() {
-
-  }
 
   // 登入區塊事件
   loginButtonObj.on('click', () => {
@@ -136,9 +132,6 @@ $(() => {
       // eslint-disable-next-line no-unused-expressions
       checkedUsers.push(this.value);
     });
-
-    // eslint-disable-next-line no-console
-    console.log(checkedUsers);
     const data2Server = {
       roomName: roomNameObj.prop('value'),
       checkedUsers,
@@ -225,7 +218,6 @@ $(() => {
   });
   socket.on('receiveMessage', (data) => {
     // 接收訊息
-    console.log(data);
     if(data.official) {
       insertcontent(
         data.userName,
@@ -266,8 +258,6 @@ $(() => {
   });
   socket.on('makeRoomSuccess', (data) => {
     makeRoomModalObj.modal('hide');
-    // eslint-disable-next-line no-console
-    console.log(data);
     for (const one of data.checkedUsers) {
       if (one === userId) {
         const idStr = `room${data.roomId}`;
@@ -303,6 +293,7 @@ $(() => {
     }
   });
   socket.on('reconnecting', () => {
+    console.log("斷線，正在重新連線！");
     login();
   });
   socket.on('getInfo', (data) => {
