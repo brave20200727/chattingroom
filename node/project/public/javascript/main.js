@@ -40,7 +40,7 @@ $(() => {
     // const nowTime = new Date(getTime);
     const formatDateTime = moment(getTime).format('YYYY-MM-DD HH:mm');
     // const regularExpression = /(http|ftp|https):\/\/[\w\-_]+(\.[\w\-_]+)+([\w\-\.,@?^=%&;:/~\+#]*[\w\-\@?^=%&;/~\+#])?/g;
-    const regularExpression = /(((ht|f)tp(s?))\:\/\/)?(www.|[a-zA-Z].)[a-zA-Z0-9\-\.]+\.(com|edu|gov|mil|net|org|biz|info|name|museum|us|ca|uk)(\:[0-9]+)*(\/($|[a-zA-Z0-9\.\,\;\?\'\\\+&amp;%\$#\=~_\-]+))*/g;
+    const regularExpression = /(((ht|f)tp(s?))\:\/\/)?(www.|[a-zA-Z].)[a-zA-Z0-9\-\.]+\.(com|edu|gov|mil|net|org|biz|info|name|museum|us|ca|uk)((.tw)|(\:[0-9]+))*(\/($|[a-zA-Z0-9\.\,\;\?\'\\\+&amp;%\$#\=~_\-]+))*/g;
     message = message.replace(regularExpression, function() {
       link = regularExpression.exec(message)[0];
       return `<a href="${link}" target="_blank">${link}</a>`
