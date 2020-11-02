@@ -146,7 +146,7 @@ async function makeRoom(data) {
       resolve();
     });
   });
-
+  
   await insertRoom(data);
   const roomId = await selectRoomId(data);
   data.roomId = roomId;
