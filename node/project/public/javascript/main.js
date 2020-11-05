@@ -3,7 +3,7 @@
 /* eslint-disable no-alert */
 /* eslint-disable no-undef */
 $(() => {
-  const url = 'http://127.0.0.1:3000';
+  const url = 'http://192.168.125.90:3000/';
   let userName = null; // 使用者名稱
   let userId = null; // 使用者ID
   let roomId = '0'; // 聊天室ID，預設為0，也就是大廳
@@ -93,11 +93,15 @@ $(() => {
   loginButtonObj.on('click', () => {
     // 按下登入按鍵做的事情
     userName = userNameObj.prop('value').trim();
+    sessionStorage.setItem('userName', userName);
+    sessionStorage.setItem('roomId', roomId);
     login();
   });
   userNameObj.keypress((event) => {
     // 使用者名稱直接按enter做的事情
     userName = userNameObj.prop('value').trim();
+    sessionStorage.setItem('userName', userName);
+    sessionStorage.setItem('roomId', roomId);
     if (event.keyCode === 13) {
       login();
     }
@@ -285,7 +289,7 @@ $(() => {
   });
   socket.on('reconnecting', () => {
     console.log("斷線，正在重新連線！");
-    login();
+    socket.emit('relogin', { userName, roomId, loginTime: new Date() });
   });
   socket.on('getInfo', (data) => {
     $('#infoBody').text(data);

@@ -40,6 +40,8 @@ const logger = winston.createLogger({
 const moment = require('moment');
 // node cron
 const cron = require('node-cron');
+const { cli } = require('winston/lib/winston/config');
+const { data } = require('jquery');
 cron.schedule('*/10 * * * * *', () => {
   con.query('SELECT infoContent FROM informations WHERE informationId = ?', [parseInt(Math.random()*10+1)], function(error, results) {
     if(error) {
@@ -198,6 +200,56 @@ io.on('connection', (socket) => {
         });
         client.SET(data.userName, data.loginTime);
       }      
+    });
+  });
+
+  socket.on('relogin', function(data) {
+    client.LPOS('onlineUsers', data.userName, function(err, res){
+      if(err) {
+        console.log(err);
+      }
+      else {
+        if(res === null) {
+          client.LRANGE('onlineUsers', 0, -1, (err, res) => {
+            for (const user of res) {
+              if (user === data.userName) {
+                socket.emit('getError', { err: 'userNameDuplicate' });
+                socket.userName = null;
+                break;
+              }
+            }
+            if (socket.userName) {
+              client.LPUSH('onlineUsers', data.userName, (err, results) => { // 加入上線使用者
+                client.LRANGE('onlineUsers', 0, -1, (err, res) => {
+                  data.userGroup = res;
+                  userLogin(data).then((returnValues) => {
+                    // client.SET(data.userName, returnValues.userId);
+                    socket.join(data.roomId);
+                    data.userId = returnValues.userId;
+                    data.userContents = returnValues.contents;
+                    data.userRooms = returnValues.rooms;
+                    io.emit('loginSuccess', data);
+                  });
+                });
+              });
+              client.SET(data.userName, data.loginTime);
+            }      
+          });
+        }
+        else {
+          client.LRANGE('onlineUsers', 0, -1, (err, res) => {
+            data.userGroup = res;
+            userLogin(data).then((returnValues) => {
+              // client.SET(data.userName, returnValues.userId);
+              socket.join(data.roomId);
+              data.userId = returnValues.userId;
+              data.userContents = returnValues.contents;
+              data.userRooms = returnValues.rooms;
+              io.emit('loginSuccess', data);
+            });
+          });
+        }
+      }
     });
   });
 
